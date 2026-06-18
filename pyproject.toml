@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hyperopt-framework"
+version = "0.1.0"
+description = "Lightweight hyperparameter optimization library with pluggable search strategies and experiment tracking"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [{ name = "Joshua Fernandez" }]
+keywords = ["hyperparameter", "optimization", "machine-learning", "bayesian"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov"]
+api = ["fastapi>=0.110", "uvicorn[standard]"]
+
+[tool.setuptools.packages.find]
+include = ["hyperopt*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
