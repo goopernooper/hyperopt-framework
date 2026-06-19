@@ -4,6 +4,9 @@ from hyperopt.core.strategy import SearchStrategy
 from hyperopt.core.objective import Objective, ObjectiveDirection
 from hyperopt.core.optimizer import Optimizer
 from hyperopt.strategies.random_search import RandomSearch
+from hyperopt.strategies.grid_search import GridSearch
+from hyperopt.strategies.bayesian import BayesianOptimization
+from hyperopt.strategies.hyperband import Hyperband
 from hyperopt.tracking.tracker import ExperimentTracker
 from hyperopt.tracking.sqlite_tracker import SQLiteTracker
 
@@ -23,6 +26,9 @@ __all__ = [
     "ObjectiveDirection",
     "Optimizer",
     "RandomSearch",
+    "GridSearch",
+    "BayesianOptimization",
+    "Hyperband",
     "ExperimentTracker",
     "SQLiteTracker",
 ]
