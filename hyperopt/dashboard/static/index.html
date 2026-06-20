@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperopt Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e1e4e8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        h1 { font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #f0f3f6; }
+        h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #f0f3f6; }
+        .experiment-select { background: #1c1f26; border: 1px solid #333; color: #e1e4e8; padding: 8px 12px; border-radius: 6px; font-size: 14px; margin-bottom: 24px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .stat-card { background: #1c1f26; border: 1px solid #2a2d35; border-radius: 8px; padding: 16px; }
+        .stat-label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; color: #58a6ff; }
+        .chart-container { background: #1c1f26; border: 1px solid #2a2d35; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+        .chart-wrapper { position: relative; height: 300px; }
+        table { width: 100%; border-collapse: collapse; background: #1c1f26; border-radius: 8px; overflow: hidden; border: 1px solid #2a2d35; }
+        th { background: #161b22; padding: 10px 14px; text-align: left; font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #2a2d35; }
+        td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #1c2028; font-family: 'SF Mono', Monaco, monospace; }
+        tr:hover td { background: #161b22; }
+        .status { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .status-completed { background: #1b3a2d; color: #3fb950; }
+        .status-failed { background: #3d1a1a; color: #f85149; }
+        .status-pruned { background: #3d2e00; color: #d29922; }
+        .loading { text-align: center; padding: 60px; color: #8b949e; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [experiments, setExperiments] = useState([]);
+            const [selected, setSelected] = useState(null);
+            const [trials, setTrials] = useState([]);
+            const [stats, setStats] = useState(null);
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                fetch('/api/experiments')
+                    .then(r => r.json())
+                    .then(data => {
+                        setExperiments(data);
+                        if (data.length > 0) setSelected(data[0].name);
+                    });
+            }, []);
+
+            useEffect(() => {
+                if (!selected) return;
+                Promise.all([
+                    fetch(`/api/experiments/${selected}/trials`).then(r => r.json()),
+                    fetch(`/api/experiments/${selected}/stats`).then(r => r.json()),
+                ]).then(([trialsData, statsData]) => {
+                    setTrials(trialsData);
+                    setStats(statsData);
+                });
+            }, [selected]);
+
+            useEffect(() => {
+                if (!chartRef.current || trials.length === 0) return;
+                if (chartInstance.current) chartInstance.current.destroy();
+
+                const completed = trials.filter(t => t.status === 'completed');
+                const scores = completed.map(t => t.score);
+                let bestSoFar = [];
+                let best = Infinity;
+                scores.forEach(s => {
+                    best = Math.min(best, s);
+                    bestSoFar.push(best);
+                });
+
+                chartInstance.current = new Chart(chartRef.current, {
+                    type: 'line',
+                    data: {
+                        labels: completed.map((_, i) => i + 1),
+                        datasets: [
+                            {
+                                label: 'Trial Score',
+                                data: scores,
+                                borderColor: '#58a6ff',
+                                backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                                pointRadius: 3,
+                                pointBackgroundColor: '#58a6ff',
+                                borderWidth: 1.5,
+                                tension: 0,
+                            },
+                            {
+                                label: 'Best So Far',
+                                data: bestSoFar,
+                                borderColor: '#3fb950',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                borderDash: [6, 3],
+                                tension: 0,
+                            }
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#8b949e', font: { size: 12 } } },
+                        },
+                        scales: {
+                            x: { title: { display: true, text: 'Trial', color: '#8b949e' }, ticks: { color: '#8b949e' }, grid: { color: '#1c2028' } },
+                            y: { title: { display: true, text: 'Score', color: '#8b949e' }, ticks: { color: '#8b949e' }, grid: { color: '#1c2028' } },
+                        },
+                    },
+                });
+            }, [trials]);
+
+            if (experiments.length === 0) return <div className="loading">No experiments found. Run an optimization first.</div>;
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>Hyperopt Dashboard</h1>
+                        <select className="experiment-select" value={selected || ''} onChange={e => setSelected(e.target.value)}>
+                            {experiments.map(exp => <option key={exp.name} value={exp.name}>{exp.name}</option>)}
+                        </select>
+                    </div>
+
+                    {stats && (
+                        <div className="stats-grid">
+                            <div className="stat-card"><div className="stat-label">Total Trials</div><div className="stat-value">{stats.total}</div></div>
+                            <div className="stat-card"><div className="stat-label">Completed</div><div className="stat-value">{stats.completed}</div></div>
+                            <div className="stat-card"><div className="stat-label">Best Score</div><div className="stat-value">{stats.min_score?.toFixed(6)}</div></div>
+                            <div className="stat-card"><div className="stat-label">Avg Score</div><div className="stat-value">{stats.avg_score?.toFixed(6)}</div></div>
+                        </div>
+                    )}
+
+                    <div className="chart-container">
+                        <h2>Optimization Progress</h2>
+                        <div className="chart-wrapper"><canvas ref={chartRef}></canvas></div>
+                    </div>
+
+                    <h2>Trial History</h2>
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Status</th><th>Score</th><th>Params</th><th>Duration</th></tr>
+                        </thead>
+                        <tbody>
+                            {trials.map(trial => (
+                                <tr key={trial.trial_id}>
+                                    <td>{trial.trial_id}</td>
+                                    <td><span className={`status status-${trial.status}`}>{trial.status}</span></td>
+                                    <td>{trial.score?.toFixed(6) ?? '—'}</td>
+                                    <td>{formatParams(trial.params)}</td>
+                                    <td>{trial.start_time && trial.end_time ? ((trial.end_time - trial.start_time).toFixed(3) + 's') : '—'}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+
+        function formatParams(params) {
+            if (!params) return '—';
+            return Object.entries(params).map(([k, v]) => `${k}: ${typeof v === 'number' ? v.toFixed(4) : v}`).join(', ');
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
