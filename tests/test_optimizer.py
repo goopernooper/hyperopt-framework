@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 
 from hyperopt.core.objective import ObjectiveDirection
-from hyperopt.core.optimizer import Optimizer
+from hyperopt.core.optimizer import Optimizer, no_improvement_stopping
 from hyperopt.core.search_space import SearchSpace, Uniform
 from hyperopt.strategies.random_search import RandomSearch
 from hyperopt.tracking.sqlite_tracker import SQLiteTracker
@@ -84,3 +84,31 @@ class TestOptimizer:
         except RuntimeError:
             pass
         assert all(t.status.value == "failed" for t in optimizer.trials)
+
+    def test_early_stopping(self):
+        space = SearchSpace()
+        space.add(Uniform("x", 0, 0.001))
+
+        strategy = RandomSearch(space, seed=42)
+        optimizer = Optimizer(
+            strategy,
+            lambda p: p["x"] ** 2,
+            ObjectiveDirection.MINIMIZE,
+            early_stop=no_improvement_stopping(patience=10),
+        )
+        best = optimizer.run(n_trials=1000)
+        assert len(optimizer.trials) < 1000
+
+    def test_no_early_stop_when_improving(self):
+        space = SearchSpace()
+        space.add(Uniform("x", -10, 10))
+
+        strategy = RandomSearch(space, seed=42)
+        optimizer = Optimizer(
+            strategy,
+            lambda p: p["x"] ** 2,
+            ObjectiveDirection.MINIMIZE,
+            early_stop=no_improvement_stopping(patience=200),
+        )
+        optimizer.run(n_trials=200)
+        assert len(optimizer.trials) == 200

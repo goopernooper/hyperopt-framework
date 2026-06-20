@@ -103,13 +103,11 @@ class BayesianOptimization(SearchStrategy):
     ) -> None:
         super().__init__(search_space, seed)
         self._rng = random.Random(seed)
-        self._np_rng = np.random.RandomState(seed)
         self.n_initial = n_initial
         self.n_candidates = n_candidates
         self.minimize = minimize
         self.gp = GaussianProcessRegressor(length_scale=length_scale)
         self._completed_trials: list[Trial] = []
-        self._param_names = search_space.dimension_names
 
     def _trial_to_vector(self, params: dict[str, Any]) -> list[float]:
         """Encode a param dict as a numeric vector for the GP."""

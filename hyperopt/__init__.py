@@ -2,7 +2,7 @@ from hyperopt.core.search_space import SearchSpace, HyperParameter, Categorical,
 from hyperopt.core.trial import Trial, TrialStatus
 from hyperopt.core.strategy import SearchStrategy
 from hyperopt.core.objective import Objective, ObjectiveDirection
-from hyperopt.core.optimizer import Optimizer
+from hyperopt.core.optimizer import Optimizer, no_improvement_stopping
 from hyperopt.strategies.random_search import RandomSearch
 from hyperopt.strategies.grid_search import GridSearch
 from hyperopt.strategies.bayesian import BayesianOptimization
@@ -25,6 +25,7 @@ __all__ = [
     "Objective",
     "ObjectiveDirection",
     "Optimizer",
+    "no_improvement_stopping",
     "RandomSearch",
     "GridSearch",
     "BayesianOptimization",

@@ -77,7 +77,6 @@ class Hyperband(SearchStrategy):
         self.minimize = minimize
         self._brackets: list[Bracket] = []
         self._all_trials: list[Trial] = []
-        self._built = False
 
     def _build_brackets(self) -> list[Bracket]:
         s_max = int(math.log(self.max_resource) / math.log(self.eta))
@@ -108,12 +107,9 @@ class Hyperband(SearchStrategy):
                 trial.start()
                 try:
                     score = self.report_fn(config, resource)
-                    if not self.minimize:
-                        bracket.report(config, -score)
-                        trial.complete(score, {"resource": resource})
-                    else:
-                        bracket.report(config, score)
-                        trial.complete(score, {"resource": resource})
+                    sort_score = -score if not self.minimize else score
+                    bracket.report(config, sort_score)
+                    trial.complete(score, {"resource": resource})
                 except Exception as exc:
                     trial.fail(str(exc))
                 self._all_trials.append(trial)

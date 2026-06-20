@@ -16,16 +16,27 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
+dependencies = ["numpy>=1.21"]
+
+[project.urls]
+Homepage = "https://github.com/goopernooper/hyperopt-framework"
+Repository = "https://github.com/goopernooper/hyperopt-framework"
+Issues = "https://github.com/goopernooper/hyperopt-framework/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-cov"]
-api = ["fastapi>=0.110", "uvicorn[standard]"]
+dashboard = ["fastapi>=0.110", "uvicorn[standard]"]
 
 [tool.setuptools.packages.find]
 include = ["hyperopt*"]
+
+[tool.setuptools.package-data]
+"hyperopt.dashboard" = ["static/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -107,6 +107,33 @@ hb = Hyperband(
 best = hb.run_all()
 ```
 
+## Early Stopping
+
+Stop optimization early when no improvement is found:
+
+```python
+from hyperopt import Optimizer, RandomSearch, ObjectiveDirection, no_improvement_stopping
+
+optimizer = Optimizer(
+    strategy=RandomSearch(space, seed=42),
+    objective=train_model,
+    direction=ObjectiveDirection.MINIMIZE,
+    early_stop=no_improvement_stopping(patience=20),
+)
+best = optimizer.run(n_trials=500)  # will stop before 500 if plateau detected
+```
+
+## Experiment Dashboard
+
+Visualize results with the built-in FastAPI + React dashboard:
+
+```bash
+pip install hyperopt-framework[dashboard]
+python -m hyperopt.dashboard --db experiments.db
+```
+
+Opens a browser UI with optimization progress charts, stats cards, and a trial history table.
+
 ## Experiment Tracking
 
 All trials are logged to SQLite with full metadata:
@@ -145,6 +172,25 @@ class MyStrategy(SearchStrategy):
         return "my_strategy"
 ```
 
+## Benchmarks
+
+Comparison on standard 3D test functions (100 trials, seed=42):
+
+| Function   | Random Search | Grid Search | Bayesian Opt | Hyperband |
+|------------|---------------|-------------|--------------|-----------|
+| Sphere     | 1.168         | **0.000**   | 0.006        | 5.390     |
+| Rosenbrock | 28.995        | **2.000**   | 15.049       | 1008.580  |
+| Rastrigin  | 14.567        | **0.000**   | 17.823       | 33.887    |
+| Ackley     | 3.875         | **0.000**   | 1.030        | 6.841     |
+
+Grid Search dominates in low dimensions where it can cover the space. Bayesian Optimization scales better to higher dimensions where Grid Search becomes intractable. Hyperband's advantage is with expensive objectives where early stopping saves compute.
+
+Run benchmarks yourself:
+
+```bash
+python benchmarks/benchmark.py
+```
+
 ## Running Tests
 
 ```bash
@@ -162,16 +208,22 @@ hyperopt-framework/
 │   │   ├── trial.py           # Trial dataclass + TrialStatus
 │   │   ├── strategy.py        # SearchStrategy ABC
 │   │   ├── objective.py       # Objective protocol + direction enum
-│   │   └── optimizer.py       # Main orchestrator
+│   │   └── optimizer.py       # Main orchestrator + early stopping
 │   ├── strategies/
 │   │   ├── random_search.py   # Random Search
 │   │   ├── grid_search.py     # Grid Search
 │   │   ├── bayesian.py        # Bayesian Optimization (GP + EI)
 │   │   └── hyperband.py       # Hyperband (successive halving)
+│   ├── dashboard/
+│   │   ├── app.py             # FastAPI app factory
+│   │   ├── routes.py          # REST API endpoints
+│   │   └── static/index.html  # React dashboard
 │   └── tracking/
 │       ├── tracker.py         # ExperimentTracker ABC
 │       └── sqlite_tracker.py  # SQLite implementation
-├── tests/                     # 43 tests
+├── benchmarks/
+│   └── benchmark.py           # Strategy comparison script
+├── tests/                     # 52 tests
 ├── examples/
 │   └── quickstart.py
 └── pyproject.toml
